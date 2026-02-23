@@ -82,27 +82,31 @@ def get_failed_logs_and_details():
 
 
 def get_fix_from_gemini(logs):
-    llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=0)
+    try:
+        llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=0)
 
-    # We ask Gemini to return ONLY the library name to keep it simple for now
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a DevOps bot. Analyze the logs. If a Python module is missing, return ONLY the name of the library that needs to be added to requirements.txt. No prose, no markdown."),
-        ("user", "LOGS:\n{logs}")
-    ])
+        # We ask Gemini to return ONLY the library name to keep it simple for now
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a DevOps bot. Analyze the logs. If a Python module is missing, return ONLY the name of the library that needs to be added to requirements.txt. No prose, no markdown."),
+            ("user", "LOGS:\n{logs}")
+        ])
 
-    chain = prompt | llm
-    response = chain.invoke({"logs": logs[-5000:]})
-    
-    content = response.content
-    if isinstance(content, list) and content:
-        # Assuming the text is in the first part of the list
-        part = content[0]
-        if isinstance(part, dict) and "text" in part:
-            return part["text"].strip()
-    elif isinstance(content, str):
-        return content.strip()
-    
-    return "" # Return empty if no valid content found
+        chain = prompt | llm
+        response = chain.invoke({"logs": logs[-5000:]})
+        
+        content = response.content
+        if isinstance(content, list) and content:
+            # Assuming the text is in the first part of the list
+            part = content[0]
+            if isinstance(part, dict) and "text" in part:
+                return part["text"].strip()
+        elif isinstance(content, str):
+            return content.strip()
+        
+        return "" # Return empty if no valid content found
+    except Exception as e:
+        print(f"🚨 An error occurred while calling the Gemini API: {e}")
+        return ""
 
 
 def apply_fix_and_create_pr(repo, lib_name):
