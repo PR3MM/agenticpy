@@ -18,8 +18,12 @@ def get_failed_logs_and_details():
         print("ERROR: GITHUB_TOKEN environment variable is required.")
         sys.exit(1)
 
-    g = Github(GITHUB_TOKEN)
-    repo = g.get_repo(REPO_NAME)
+    g = Github(GITHUB_TOKEN, timeout=30)
+    try:
+        repo = g.get_repo(REPO_NAME)
+    except Exception as e:
+        print(f"ERROR: Could not get repo '{REPO_NAME}'. Please check the name and your token's permissions.")
+        raise e
     run = None
 
     # If RUN_ID provided, try to fetch it
@@ -55,7 +59,7 @@ def get_failed_logs_and_details():
     logs_endpoint = f"https://api.github.com/repos/{owner}/{repo_name}/actions/runs/{run.id}/logs"
     headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"}
 
-    resp = requests.get(logs_endpoint, headers=headers, stream=True, allow_redirects=True)
+    resp = requests.get(logs_endpoint, headers=headers, stream=True, allow_redirects=True, timeout=30)
     if resp.status_code != 200:
         raise RuntimeError(f"Failed to download logs archive: {resp.status_code} {resp.text}")
 
