@@ -95,10 +95,8 @@ def get_failed_logs_and_details():
 
 def get_fix_from_gemini(logs):
     try:
-        # gemini-1.5-flash is fast, low-latency, and widely available.
-        # The previous model name 'gemini-3-flash-preview' was incorrect and
-        # caused the API to hang before returning an error, causing the slowdown.
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+         
+        llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=0)
 
         # We ask Gemini to return ONLY the library name to keep it simple for now
         prompt = ChatPromptTemplate.from_messages([
