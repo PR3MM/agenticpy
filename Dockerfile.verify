@@ -1,0 +1,10 @@
+FROM python:3.10-slim
+WORKDIR /sandbox
+RUN pip install z3-solver
+
+# Copy the verification script and the generated code into the container.
+COPY verify_code.py .
+COPY app/generated_code.py .
+
+# Set the default command to run our verification script.
+CMD ["python", "verify_code.py"]
