@@ -1,0 +1,78 @@
+# .github/workflows/ai-verification.yml
+# This workflow demonstrates how to run a sandboxed code verification process.
+name: AI Code Generation and Verification
+
+on:
+  # This allows the workflow to be triggered manually from the GitHub Actions UI.
+  workflow_dispatch:
+
+jobs:
+  verify-code:
+    # The job will run on the latest version of Ubuntu provided by GitHub.
+    runs-on: ubuntu-latest
+
+    # This 'services' block sets up a Docker-in-Docker (DinD) environment.
+    # It starts a Docker daemon in a container that our job can connect to.
+    services:
+      dind:
+        image: docker:24-dind
+        # --privileged is required for the Docker daemon to run correctly inside a container.
+        options: --privileged
+        ports:
+          # Exposes the Docker daemon's port to the host runner.
+          - 2375:2375
+
+    steps:
+      # Step 1: Check out the repository code so the workflow can access it.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: This step simulates an AI generating or modifying code.
+      # For this demo, we're just creating a simple Python file.
+      - name: AI Generates Code
+        id: ai-code-gen
+        run: |
+          echo "def new_function(): return True" > app/generated_code.py
+          echo "Generated app/generated_code.py"
+
+      # Step 3: Build the verification container that will be used as a sandbox.
+      - name: Build Verification Container
+        run: |
+          # We create the Dockerfile for our verification environment on the fly.
+          # This keeps the logic self-contained within the workflow file.
+          cat <<EOF > Dockerfile.verify
+          # Use a slim Python image to keep the container lightweight.
+          FROM python:3.10-slim
+          WORKDIR /app
+
+          # Install the Z3 solver, which is a theorem prover from Microsoft.
+          # This is the "mathematical verification" tool for our example.
+          RUN pip install z3-solver
+
+          # Copy the application and verification code into the container.
+          COPY . .
+
+          # Set the default command to run our verification script.
+          CMD ["python", "verify_code.py"]
+          EOF
+
+          # Build the Docker image using the Docker-in-Docker service.
+          docker build -t verification-sandbox -f Dockerfile.verify .
+
+      # Step 4: Run the verification logic inside the strictly isolated sandbox.
+      - name: Run Verification in Isolated Sandbox
+        run: |
+          # We run the container with several security restrictions.
+          docker run --rm \
+            --network=none \
+            --read-only \
+            -v $(pwd)/app:/app:ro \
+            verification-sandbox
+
+      # Step 5: If the verification step succeeds, this step will run.
+      # In a real-world scenario, this is where you would add the logic
+      # to create a pull request with the newly verified code.
+      - name: Create Pull Request on Success
+        if: success()
+        run: |
+          echo "✅ Verification successful. In a real implementation, a PR would be created here."
