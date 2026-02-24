@@ -35,16 +35,14 @@ def get_failed_logs_and_details():
         except Exception as e:
             print(f"Warning: could not fetch run id {RUN_ID}: {e}")
 
-    # Fallback: find the most recent failed run
+    # Fallback: find the most recent failed run.
+    # We filter by status="failure" directly in the API call for efficiency.
     if run is None:
         print("Searching for the latest failed workflow run in the repository...")
         try:
-            runs = repo.get_workflow_runs()
-            for r in runs:
-                conclusion = getattr(r, "conclusion", None)
-                if conclusion == "failure":
-                    run = r
-                    break
+            # This is much faster as it only fetches failed runs.
+            runs = repo.get_workflow_runs(status="failure")
+            run = next(iter(runs), None) # Get the first item, or None if empty
         except Exception as e:
             print(f"ERROR: could not list workflow runs: {e}")
             raise
