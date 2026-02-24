@@ -59,12 +59,18 @@ def get_failed_logs_and_details():
     logs_endpoint = f"https://api.github.com/repos/{owner}/{repo_name}/actions/runs/{run.id}/logs"
     headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"}
 
-    resp = requests.get(logs_endpoint, headers=headers, stream=True, allow_redirects=True, timeout=30)
-    if resp.status_code != 200:
-        raise RuntimeError(f"Failed to download logs archive: {resp.status_code} {resp.text}")
+    # Stream the download to handle large log files efficiently
+    bio = io.BytesIO()
+    try:
+        with requests.get(logs_endpoint, headers=headers, stream=True, allow_redirects=True, timeout=180) as resp:
+            resp.raise_for_status() # Raise an exception for bad status codes
+            for chunk in resp.iter_content(chunk_size=8192):
+                bio.write(chunk)
+        bio.seek(0) # Rewind the buffer to the beginning for reading
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Failed to download logs archive: {e}")
 
-    # Load ZIP into memory and concatenate text files
-    bio = io.BytesIO(resp.content)
+    # Load ZIP from memory buffer and concatenate text files
     logs = ""
     try:
         with zipfile.ZipFile(bio) as z:
@@ -78,7 +84,8 @@ def get_failed_logs_and_details():
     except zipfile.BadZipFile:
         # If not a zip, try decode as text
         try:
-            logs = resp.content.decode("utf-8", errors="ignore")
+            bio.seek(0) # Rewind buffer again
+            logs = bio.read().decode("utf-8", errors="ignore")
         except Exception:
             logs = ""
 
