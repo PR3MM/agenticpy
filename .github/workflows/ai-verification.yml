@@ -12,6 +12,13 @@ jobs:
     # The job will run on the latest version of Ubuntu provided by GitHub.
     runs-on: ubuntu-latest
 
+    # Explicitly grant the permissions required by the create-pull-request action.
+    # It needs to be able to write to contents (to push a new branch)
+    # and to create pull requests.
+    permissions:
+      contents: write
+      pull-requests: write
+
     # This 'services' block sets up a Docker-in-Docker (DinD) environment.
     services:
       dind:
