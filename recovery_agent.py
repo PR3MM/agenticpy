@@ -18,9 +18,10 @@ def get_failed_logs_and_details():
         print("ERROR: GITHUB_TOKEN environment variable is required.")
         sys.exit(1)
 
-    # Use the recommended authentication method
+    # Use the recommended authentication method.
+    # Increased timeout to 180s to match the log download timeout.
     auth = Auth.Token(GITHUB_TOKEN)
-    g = Github(auth=auth, timeout=30)
+    g = Github(auth=auth, timeout=180)
     try:
         repo = g.get_repo(REPO_NAME)
     except Exception as e:
@@ -94,7 +95,10 @@ def get_failed_logs_and_details():
 
 def get_fix_from_gemini(logs):
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=0)
+        # gemini-1.5-flash is fast, low-latency, and widely available.
+        # The previous model name 'gemini-3-flash-preview' was incorrect and
+        # caused the API to hang before returning an error, causing the slowdown.
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
 
         # We ask Gemini to return ONLY the library name to keep it simple for now
         prompt = ChatPromptTemplate.from_messages([
