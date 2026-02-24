@@ -33,12 +33,14 @@ jobs:
         uses: actions/checkout@v4
 
       # Step 2: This step simulates an AI generating or modifying code.
+      # We now include the commit SHA to ensure the file is unique on every run.
       - name: AI Generates Code
         id: ai-code-gen
         run: |
           mkdir -p app
-          echo "def new_function(): return True" > app/generated_code.py
-          echo "Generated app/generated_code.py"
+          echo "# Unique ID: ${{ github.sha }}" > app/generated_code.py
+          echo "def new_function(): return True" >> app/generated_code.py
+          echo "Generated unique app/generated_code.py"
 
       # Step 3: Build the verification container that will be used as a sandbox.
       - name: Build Verification Container

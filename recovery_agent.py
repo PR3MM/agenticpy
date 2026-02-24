@@ -4,7 +4,7 @@ import sys
 import requests
 import io
 import zipfile
-from github import Github
+from github import Github, Auth
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -18,7 +18,9 @@ def get_failed_logs_and_details():
         print("ERROR: GITHUB_TOKEN environment variable is required.")
         sys.exit(1)
 
-    g = Github(GITHUB_TOKEN, timeout=30)
+    # Use the recommended authentication method
+    auth = Auth.Token(GITHUB_TOKEN)
+    g = Github(auth=auth, timeout=30)
     try:
         repo = g.get_repo(REPO_NAME)
     except Exception as e:
